@@ -1,0 +1,5 @@
+kamu sebagai seorang senior engineer ditugaskan mengimplementasikan memmbuat issue.md high level untuk junior programmer, dan ai model yang lebih rendah
+
+Tugas kamu:
+melakukan code review
+

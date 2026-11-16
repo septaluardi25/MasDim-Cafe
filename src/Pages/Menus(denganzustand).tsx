@@ -1,0 +1,69 @@
+import CardMenus from "../Components/CardMenus";
+import Header from "../Components/Header";
+import { useQuery } from "@tanstack/react-query";
+import { getMenus } from "../api/menuApi";
+import { useState } from "react";
+import MenuDetail from "../Layouts/MenuDetail";
+
+const MenusZ = () => {
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const { data, isError, isPending } = useQuery({
+    queryKey: ["menus"],
+    queryFn: getMenus,
+  });
+
+  const categories = ["All", ...new Set(data?.map((m) => m.category))];
+  const filteredMenus =
+    selectedCategory === "All"
+      ? data
+      : data?.filter((m) => m.category === selectedCategory);
+
+  if (isPending) return <p>Loading...</p>;
+  if (isError) return <p>Error...</p>;
+
+  return (
+    <div>
+      <Header />
+      <div className="max-w-7xl mx-auto p-6">
+        <h1 className="text-3xl font-bold text-amber-950 mb-6">Our Menu</h1>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6">
+          {/* category filter */}
+          <aside className="lg:sticky lg:top-6 lg:self-start">
+            <h2 className="text-sm font-bold text-gray-500 uppercase mb-3">
+              Kategori
+            </h2>
+            <div className="flex flex-row flex-wrap justify-center lg:flex-col gap-2  lg:overflow-visible">
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setSelectedCategory(c)}
+                  className={`text-left px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition ${selectedCategory === c ? "bg-amber-950 text-white" : "bg-gray-100 text-gray-800 hover:bg-gray-200"}`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          {/* grid menu */}
+          {filteredMenus?.length === 0 ? (
+            <p>Tidak ada menu untuk Category {selectedCategory}</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+              {filteredMenus?.map((menu) => (
+                <CardMenus
+                  key={menu.id}
+                  menu={menu}
+                />
+              ))}
+            </div>
+          )}
+          <MenuDetail />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MenusZ;
