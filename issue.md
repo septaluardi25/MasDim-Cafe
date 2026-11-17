@@ -1,555 +1,463 @@
-# 📋 Engineering Task & Code Review: High-Level Issue Backlog
+# 📱 Mobile Responsiveness & Layout Breakdown Audit: High-Level Issue Backlog
 
-> **Project:** MasDim Cafe (React + TypeScript + Vite + Zustand + TanStack Query)  
-> **Author:** Senior Frontend Engineer  
+> **Project:** MasDim Cafe (React + TypeScript + Tailwind CSS)  
+> **Role:** Senior Frontend Engineer  
 > **Audience:** Junior Developer / AI Sub-Agent  
-> **Status:** Open / Action Required  
+> **Focus:** Investigasi & Perbaikan Kerusakan Tampilan pada Handphone / Layar Mobile (< 640px)  
+> **Status:** Open / Ready to Implement  
 
 ---
 
-## 📌 Executive Summary
+## 📌 1. Executive Summary & Root Cause Diagnosis
 
-Berdasarkan hasil comprehensive code review pada repository ini, aplikasi memiliki pondasi fitur yang baik (Authentication, Menus, Menu Detail, Cart, dan Client-side Routing). Namun, terdapat sejumlah **Critical Blockers** yang membuat build gagal (`npm run build` & `npm run lint` gagal), **Bug Runtime & Network**, **Arsitektur Folder & Penamaan yang melanggar konvensi**, serta **Inkonsistensi State Management & UX**.
+Setelah dilakukan pengujian dan audit visual pada viewport mobile (benchmark: resolusi **360px – 390px**, contoh: iPhone SE, iPhone 12/13/14, Samsung Galaxy S series), ditemukan bahwa aplikasi mengalami **kerusakan tampilan yang parah pada perangkat handphone**.
 
-Dokumen ini disusun sebagai panduan perbaikan yang jelas (*actionable*), terstruktur (*step-by-step*), dan dilengkapi kriteria penyelesaian (*acceptance criteria*) agar mudah dieksekusi secara mandiri oleh Junior Programmer maupun model AI.
-
----
-
-## 🚦 Severity Matrix
-
-| Severity | Total | Keterangan |
-| :--- | :---: | :--- |
-| **P0 - Critical (Blocker)** | 3 | Menggagalkan build/lint, merusak network request API secara global. |
-| **P1 - High (Functional Bugs)** | 4 | Fitur rusak di runtime (form login tanpa pesan error, link mati/404, scoping bug). |
-| **P2 - Medium (Architecture & Clean Code)** | 5 | Penamaan file tidak baku, dead code, penempatan layout salah, anti-pattern selector. |
-| **P3 - Low (UI/UX, A11y & Polishing)** | 4 | Aksesibilitas, kontras warna Tailwind, loading state kasar, page title. |
+### 🔍 4 Penyebab Utama Kerusakan Tampilan Mobile:
+1. **Penggunaan `min-w-md` (448px) yang Melebihi Lebar Layar HP**:  
+   Layar smartphone standar memiliki lebar 360px–390px. Di halaman Login dan Modal, kode memaksakan `min-w-md` (minimal lebar 448px), sehingga halaman mengalami **horizontal overflow (bocor ke samping)**, muncul scrollbar horizontal, dan input terpotong.
+2. **Fixed Height `h-[80vh]` & Kurangnya Constraints Gambar**:  
+   Pada Hero Section (`Main.tsx`), tinggi kontainer dikunci `h-[80vh]` padahal konten teks dan gambar yang bertumpuk vertikal di HP membutuhkan ruang lebih dari 800px. Akibatnya teks dan gambar meluber (*overflowing*) dan bertabrakan dengan elemen lain.
+3. **Flexbox Baris Tunggal yang Kaku (Rigid Row Flex)**:  
+   Pada baris item keranjang (`Cart.tsx`) dan Header saat login, elemen-elemen (gambar, teks panjang, tombol kuantitas, tombol hapus) dipaksa berada dalam 1 baris tanpa `flex-wrap`. Pada layar 360px, elemen saling berdesakan, teks nama menu tertekan menjadi 1 huruf per baris, atau melebar keluar layar.
+4. **Header Terlalu Tinggi (`h-30` = 120px) & Kategori Menu Menumpuk**:  
+   Header memakan ~20% dari tinggi total layar HP, dan tombol kategori produk membungkus secara acak (*flex-wrap*) sehingga mendorong konten menu utama jauh ke bawah layar lipat (*below the fold*).
 
 ---
 
-## 🛠️ Prioritized Issue List
+## 🚦 2. Severity Matrix Masalah Tampilan Mobile
+
+| ID | Issue Title | Severity | File Terdampak | Dampak Visual di Handphone |
+| :---: | :--- | :---: | :--- | :--- |
+| **[MOB-01]** | Form Login Meluber ke Samping (`min-w-md`) | **P0 - Critical** | `src/Pages/Login.tsx` | Layar bocor horizontal, form terpotong di HP |
+| **[MOB-02]** | Hero Section Bertabrakan & Meluber (`h-[80vh]`) | **P0 - Critical** | `src/Layouts/Main.tsx` | Konten terpotong, tombol menempel tanpa celah |
+| **[MOB-03]** | Card Item Keranjang Tergencet & Overflow | **P0 - Critical** | `src/Pages/Cart.tsx` | Teks tergencet, tombol bertumpuk/rusak |
+| **[MOB-04]** | Header Terlalu Tinggi & User Greeting Bocor | **P1 - High** | `src/Components/Header.tsx`, `LogoutButton.tsx` | Header memakan layar, greeting & tombol keluar layar |
+| **[MOB-05]** | Filter Kategori Menumpuk & Header Menu Asimetris | **P1 - High** | `src/Pages/Menus.tsx` | Filter makan tempat vertikal, cart button melenceng |
+| **[MOB-06]** | Gambar Detail Menu Terlalu Besar & Scroll Trap | **P2 - Medium** | `src/Layouts/MenuDetail.tsx` | Gambar memenuhi layar, scroll terjebak di review |
+| **[MOB-07]** | Modal Menu Detail Bocor Layar (`min-w-md`) | **P2 - Medium** | `src/Layouts/MenuDetail(dengan zustand).tsx` | Modal lebih lebar dari layar HP |
 
 ---
 
-### [P0-01] TypeScript Build Failure: Unused Variable in Auth Store
-- **Severity:** P0 - Blocker
-- **File:** `src/stores/authStore.ts` (Line 2)
-- **Problem:**
-  Proses `npm run build` (`tsc -b`) gagal dengan error:
-  ```text
-  src/stores/authStore.ts(2,10): error TS6133: 'createJSONStorage' is declared but its value is never read.
-  ```
-- **Root Cause:**
-  Import `createJSONStorage` diimpor dari `"zustand/middleware"` namun tidak pernah digunakan.
-- **Solution:**
-  Hapus import `createJSONStorage` dari line 2.
-  ```ts
-  // ❌ Sebelum
-  import { createJSONStorage, persist } from "zustand/middleware";
-
-  // ✅ Sesudah
-  import { persist } from "zustand/middleware";
-  ```
-- **Acceptance Criteria:**
-  - `npx tsc -b` tidak lagi memunculkan error `TS6133`.
+## 🛠️ 3. Detail Masalah & Panduan Perbaikan Langkah-demi-Langkah
 
 ---
 
-### [P0-02] ESLint Failure: Unused Expression in Layout/Main.tsx
-- **Severity:** P0 - Blocker
-- **File:** `src/Layouts/Main.tsx` (Line 8-10)
-- **Problem:**
-  Proses `npm run lint` gagal dengan error:
-  ```text
-  9:5 error Expected an assignment or function call and instead saw an expression @typescript-eslint/no-unused-expressions
-  ```
-- **Root Cause:**
-  Menggunakan operator ternary `? :` sebagai pengganti statement `if-else` untuk fungsi navigasi tanpa menampung return valuenya.
-- **Solution:**
-  Ubah ekspresi ternary menjadi percabangan `if ... else` yang eksplisit:
+### [MOB-01] Form Login Meluber ke Samping karena `min-w-md` (448px)
+- **Severity:** P0 - Critical
+- **Lokasi File:** `src/Pages/Login.tsx` (Baris 38)
+- **Masalah:**
   ```tsx
-  // ❌ Sebelum
-  const handleOrder = () => {
-    !isLogin ? navigate("/login") : navigate("/menu");
-  };
-
-  // ✅ Sesudah
-  const handleOrder = () => {
-    if (!isLogin) {
-      navigate("/login");
-    } else {
-      navigate("/menu");
-    }
-  };
+  // ❌ Kode Saat Ini:
+  <div className="bg-gray-800 min-h-screen w-full flex justify-center items-center">
+    <div className=" max-w-xl min-w-md min-h-80 ">
   ```
-- **Acceptance Criteria:**
-  - `npm run lint` lolos tanpa error pada file ini.
-
----
-
-### [P0-03] Syntax Error pada File Konfigurasi `.env` (Leading Whitespace)
-- **Severity:** P0 - Blocker
-- **File:** `.env` (Line 1)
-- **Problem:**
-  Terdapat spasi setelah tanda `=` pada variabel `VITE_API_URL`:
-  ```env
-  VITE_API_URL= https://wpu-cafe.vercel.app/api
-  ```
-- **Root Cause:**
-  Vite akan membaca value env beserta spasi di awal string (`" https://wpu-cafe.vercel.app/api"`). Saat digabungkan dengan fetch template string (misal: `${BASE_URL}/menu`), URL menjadi `" https://wpu-cafe.vercel.app/api/menu"` yang berisiko membuat request fetch gagal / network error.
-- **Solution:**
-  Hapus spasi setelah tanda `=`:
-  ```env
-  # ✅ Sesudah
-  VITE_API_URL=https://wpu-cafe.vercel.app/api
-  ```
-- **Acceptance Criteria:**
-  - `import.meta.env.VITE_API_URL` tidak memiliki leading/trailing whitespace.
-  - Request fetch ke API berjalan mulus tanpa error URL malformed.
-
----
-
-### [P1-01] Silent Failure pada Halaman Login (Missing Error Handling)
-- **Severity:** P1 - High
-- **File:** `src/Pages/Login.tsx` (Line 25-35)
-- **Problem:**
-  Komponen `Login.tsx` menyediakan state `const [error, setError] = useState<string>("");`, tetapi `loginMutation` **sama sekali tidak memiliki callback `onError`**. Jika user memasukkan email/password yang salah atau server mengalami down (500), tombol kembali normal tanpa menampilkan pesan kesalahan apa pun ke user.
-- **Root Cause:**
-  `useMutation` hanya menangani `onSuccess`.
-- **Solution:**
-  Tambahkan handler `onError` pada konfigurasi `useMutation`:
+- **Mengapa Rusak di HP:**
+  Di Tailwind CSS, `min-w-md` di-compile menjadi `min-width: 28rem` (yaitu **448px**). Sementara layar iPhone 13 hanya memiliki lebar **390px**, dan Android murah/standar sekitar **360px**. Container dipaksa lebih lebar 58px–88px daripada layar HP, menyebabkan halaman bisa digeser ke kanan-kiri secara tidak sengaja dan input email/password terpotong.
+- **Solusi Perbaikan:**
+  Ganti `min-w-md` menjadi `w-full max-w-md px-4`:
   ```tsx
   // ✅ Solusi:
-  const loginMutation = useMutation({
-    mutationFn: authLogin,
-    onSuccess: ({ token, user }) => {
-      loginAction(token, user);
-      navigate("/");
-    },
-    onError: (err: Error) => {
-      setError(err.message || "Gagal masuk. Silakan periksa kembali email dan password Anda.");
-    },
-  });
+  <div className="bg-gray-800 min-h-screen w-full flex justify-center items-center p-4">
+    <div className="w-full max-w-md min-h-80 bg-gray-800">
+      <form
+        className="flex justify-between flex-col p-6 gap-2 bg-gray-900 rounded-xl shadow-lg border border-gray-700"
+        onSubmit={handleSubmit(onSubmit)}
+      >
   ```
 - **Acceptance Criteria:**
-  - Ketika login gagal (contoh: status 400/401/500), pesan error muncul di banner merah di atas form.
-  - Saat submit ulang, error lama dibersihkan dan diganti error baru jika masih gagal.
+  - Pada layar lebar 320px, 360px, dan 390px, form login pas di tengah layar dengan margin kanan-kiri yang rapi.
+  - Tidak ada scrollbar horizontal sama sekali (`window.innerWidth === document.documentElement.clientWidth`).
 
 ---
 
-### [P1-02] Broken Navigation Link: Checkout Route Menuju 404
-- **Severity:** P1 - High
-- **Files:**
-  - `src/Pages/Cart.tsx` (Line 88-93)
-  - `src/routes/router.tsx`
-- **Problem:**
-  Di halaman `Cart.tsx`, terdapat tombol:
+### [MOB-02] Hero Section Rusak: Tinggi Terkunci `h-[80vh]`, Gap Hilang & Tipografi Raksasa
+- **Severity:** P0 - Critical
+- **Lokasi File:** `src/Layouts/Main.tsx` (Baris 13, 19, 32, 48)
+- **Masalah:**
   ```tsx
-  <Link to="/checkout" className="...">Checkout →</Link>
-  ```
-  Namun rute `/checkout` **belum terdaftar** di `router.tsx`, sehingga jika user menekan Checkout, mereka terlempar ke halaman blank 404 (`NotFound`).
-- **Solution:**
-  Pilih salah satu dari 2 opsi berikut:
-  1. **Opsi A (Recommended jika Checkout belum siap):** Nonaktifkan tombol / ganti menjadi interaksi checkout sementara (misal tombol alert konfirmasi pembayaran & panggil `clearCart()`).
-  2. **Opsi B:** Buat rute `/checkout` dengan komponen `Checkout.tsx` di dalam `ProtectedRoute` di `router.tsx`.
-- **Acceptance Criteria:**
-  - Tidak ada tombol atau link yang mengarahkan user ke halaman 404 tak terduga.
-
----
-
-### [P1-03] Flawed API Error Handling di `authApi.ts`
-- **Severity:** P1 - High
-- **File:** `src/api/authApi.ts` (Line 13-15)
-- **Problem:**
-  Kode membaca `json.Error`:
-  ```ts
-  if (!response.ok) throw new Error(json.Error || "Login gagal");
-  ```
-  Sebagian besar REST API standar (termasuk Express/Nest/FastAPI) mengembalikan pesan error dengan key huruf kecil `json.message` atau `json.error`, bukan PascalCase `json.Error`. Selain itu, jika server mengembalikan status non-200 berupa HTML (misal 502 Bad Gateway), `await response.json()` akan melempar unhandled syntax crash.
-- **Solution:**
-  Gunakan pengecekan fallback yang aman:
-  ```ts
-  export const authLogin = async (data: LoginRequest): Promise<LoginResponse> => {
-    const response = await fetch(`${BASE_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-
-    const json = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      const errorMessage = json?.message || json?.error || json?.Error || "Login gagal, silakan coba lagi.";
-      throw new Error(errorMessage);
-    }
-    return json;
-  };
-  ```
-- **Acceptance Criteria:**
-  - Pesan error dari backend ditampilkan dengan benar dan tidak jatuh ke error generic jika backend mengirim `{ message: "..." }`.
-
----
-
-### [P1-04] Logic Scoping & Safe Destructuring di `MenuDetail.tsx`
-- **Severity:** P1 - High
-- **File:** `src/Layouts/MenuDetail.tsx` (Line 16-19 & Line 39)
-- **Problem:**
-  Handler `handleAdd` dipasang sebelum pengecekan awal (`isPending`, `isError`, `!data`).
-  ```tsx
-  const handleAdd = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    addItem(menuItem); // menuItem dideklarasikan 20 baris di bawahnya!
-  };
-  ...
-  if (isPending) return ...;
-  if (!data) return null;
-  const { menuItem, reviews } = data;
-  ```
-  Meskipun JS hoisting/lexical closure bekerja saat event handler dipanggil, menulis closure yang mengakses variabel sebelum deklarasinya merupakan *bad practice* (meningkatkan risiko TDZ / runtime bugs jika urutan refactor berubah) dan membingungkan linter/developer.
-- **Solution:**
-  Pindahkan deklarasi `handleAdd` ke bawah pengecekan data, atau passing langsung `data.menuItem`:
-  ```tsx
-  if (isPending) return <div ...>Loading...</div>;
-  if (isError) return <div ...>Gagal memuat menu</div>;
-  if (!data) return null;
-
-  const { menuItem, reviews } = data;
-
-  const handleAdd = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    addItem(menuItem);
-  };
-  ```
-- **Acceptance Criteria:**
-  - Variabel dideklarasikan sebelum digunakan.
-
----
-
-### [P2-01] Struktur Folder & Penamaan File Tidak Standar
-- **Severity:** P2 - Medium
-- **Files:**
-  - `src/Layouts/Main.tsx`
-  - `src/Layouts/MenuDetail.tsx`
-  - `src/Components/CardMenus(dengan zustand).tsx`
-  - `src/Layouts/MenuDetail(dengan zustand).tsx`
-  - `src/Pages/Menus(denganzustand).tsx`
-  - `src/stores/menuDetailStore.ts`
-  - `src/App.tsx`
-- **Problem:**
-  1. `src/Layouts/Main.tsx` adalah Hero section, bukan Layout aplikasi.
-  2. `src/Layouts/MenuDetail.tsx` adalah Halaman (Page), bukan Layout.
-  3. Ada 3 file dengan tanda kurung bahasa Indonesia `(dengan zustand)`. Ini adalah file eksperimen yang tidak terpakai (orphaned/dead code).
-  4. `src/stores/menuDetailStore.ts` tidak digunakan pada alur utama router.
-  5. `src/App.tsx` tidak digunakan karena `main.tsx` langsung merender `RouterProvider`.
-- **Solution:**
-  1. Rename & pindahkan `src/Layouts/Main.tsx` -> `src/Components/Hero.tsx` (atau sesuaikan impornya di `src/Pages/Home.tsx`).
-  2. Pindahkan `src/Layouts/MenuDetail.tsx` -> `src/Pages/MenuDetail.tsx` (dan sesuaikan impor di `src/routes/router.tsx`).
-  3. Hapus (atau arsipkan ke folder `experiments/` jika ingin dijadikan catatan belajar) file-file duplikat:
-     - `src/Components/CardMenus(dengan zustand).tsx`
-     - `src/Layouts/MenuDetail(dengan zustand).tsx`
-     - `src/Pages/Menus(denganzustand).tsx`
-     - `src/stores/menuDetailStore.ts`
-  4. Hapus file `src/App.tsx` yang tidak terpakai.
-- **Acceptance Criteria:**
-  - Semua nama file mengikuti standar camelCase/PascalCase tanpa tanda kurung atau spasi.
-  - Komponen halaman berada di folder `Pages/`, layout di `Layouts/`, dan reusable components di `Components/`.
-
----
-
-### [P2-02] Inkonsistensi Layout: Header Diimpor Berulang Kali
-- **Severity:** P2 - Medium
-- **Files:** `src/Pages/Home.tsx`, `src/Pages/Menus.tsx`, `src/Pages/Cart.tsx`, `src/routes/router.tsx`
-- **Problem:**
-  Komponen `<Header />` di-render secara manual di setiap halaman (`Home`, `Menus`, `Cart`). Sebaliknya, halaman `MenuDetail` justru kehilangan `Header` sehingga navigasi hilang saat berada di detail menu.
-- **Solution:**
-  Implementasikan pattern **Root Layout** dengan `<Outlet />` dari React Router:
-  1. Buat file `src/Layouts/RootLayout.tsx`:
-     ```tsx
-     import { Outlet } from "react-router";
-     import Header from "../Components/Header";
-
-     const RootLayout = () => {
-       return (
-         <div className="min-h-screen flex flex-col bg-gray-50">
-           <Header />
-           <main className="flex-1">
-             <Outlet />
-           </main>
-         </div>
-       );
-     };
-
-     export default RootLayout;
-     ```
-  2. Di `src/routes/router.tsx`, jadikan `RootLayout` sebagai parent route utama:
-     ```tsx
-     const router = createBrowserRouter([
-       {
-         element: <RootLayout />,
-         children: [
-           { path: "/", element: <Home /> },
-           { path: "/menu", element: <Menus /> },
-           { path: "/menu/:id", element: <MenuDetail /> },
-           {
-             element: <ProtectedRoute />,
-             children: [{ path: "/cart", element: <Cart /> }],
-           },
-         ],
-       },
-       {
-         element: <GuestRoute />,
-         children: [{ path: "/login", element: <Login /> }],
-       },
-       { path: "*", element: <NotFound /> },
-     ]);
-     ```
-  3. Hapus import dan pemanggilan `<Header />` individual dari `Home.tsx`, `Menus.tsx`, dan `Cart.tsx`.
-- **Acceptance Criteria:**
-  - Header konsisten muncul di semua halaman publik dan cart.
-  - Kode halaman lebih bersih dan DRY (Don't Repeat Yourself).
-
----
-
-### [P2-03] Zustand Selector Anti-pattern di Halaman Cart & Menus
-- **Severity:** P2 - Medium
-- **Files:**
-  - `src/Pages/Cart.tsx` (Line 10)
-  - `src/Pages/Menus.tsx` (Line 17)
-- **Problem:**
-  Memanggil fungsi getter store langsung di dalam selector hook:
-  ```tsx
-  // ❌ Anti-pattern:
-  const totalPrice = useCartStore((s) => s.getTotalPrice());
-  const totalItems = useCartStore((state) => state.getTotalItem());
-  ```
-  Di Zustand, selector seharusnya berupa fungsi deterministik yang memetakan state ke value primitif atau object yang stabil. Memanggil `s.getTotalPrice()` yang di dalamnya memanggil `get()` mengevaluasi ulang fungsi di setiap render cycle tanpa selektor memoization yang rapi.
-- **Solution:**
-  Hitung langsung via selector murni atau ekstrak selector tersendiri:
-  ```tsx
-  // ✅ Rekomendasi di Cart.tsx:
-  const totalPrice = useCartStore((s) =>
-    s.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  );
-
-  // ✅ Rekomendasi di Menus.tsx / Header.tsx:
-  const totalItems = useCartStore((s) =>
-    s.items.reduce((sum, item) => sum + item.quantity, 0)
-  );
-  ```
-- **Acceptance Criteria:**
-  - Cart dan Menus melakukan kalkulasi reaktif murni berdasarkan perubahan array `items`.
-
----
-
-### [P2-04] Duplikasi Model TypeScript: `Menu` vs `MenuItem`
-- **Severity:** P2 - Medium
-- **Files:**
-  - `src/types/Menu.ts`
-  - `src/types/MenuDetail.ts`
-- **Problem:**
-  Interface `Menu` di `Menu.ts` dan `MenuItem` di `MenuDetail.ts` memiliki field yang 100% sama (identik):
-  ```ts
-  id, name, description, price, image_url, category, is_available, created_at
-  ```
-  Adanya dua interface yang sama menyebabkan kebingungan tipe data saat passing props antar komponen.
-- **Solution:**
-  Gunakan kembali `Menu` dari `types/Menu.ts` di dalam `MenuDetailResponse`:
-  ```ts
-  // src/types/MenuDetail.ts
-  import type { Menu } from "./Menu";
-
-  export interface ItemReview {
-    id: string;
-    menu_item_id: string;
-    reviewer_name: string;
-    rating: number;
-    comment: string;
-    created_at: string;
-  }
-
-  export interface Reviews {
-    items: ItemReview[];
-    total: number;
-    averageRating: number;
-  }
-
-  export interface MenuDetailResponse {
-    menuItem: Menu;
-    reviews: Reviews;
-  }
-  ```
-- **Acceptance Criteria:**
-  - Tidak ada interface duplikat untuk entitas Menu item.
-
----
-
-### [P2-05] Pembersihan Debug Log & File Dead Code
-- **Severity:** P2 - Medium
-- **Files:**
-  - `src/Components/ProtectedRoute.tsx` (Line 6)
-  - `src/api/menuApi.ts` (Line 22)
-  - `src/utils/errorHandler.ts`
-- **Problem:**
-  1. `ProtectedRoute.tsx` mencetak `console.log("token:", "auth-Storage");`.
-  2. `menuApi.ts` mencetak `console.log(data);`.
-  3. `src/utils/errorHandler.ts` dibuat namun tidak pernah diimpor sama sekali di project.
-- **Solution:**
-  - Hapus semua sisa `console.log`.
-  - Sambungkan `errorHandler.ts` ke fungsi catch API atau hapus jika tidak diperlukan.
-- **Acceptance Criteria:**
-  - Console browser bersih dari log sampah/debugging.
-
----
-
-### [P3-01] Tailwind Class Conflict & Missing Visual Feedback pada Button
-- **Severity:** P3 - Low
-- **File:** `src/Components/CardMenus.tsx` (Line 42)
-- **Problem:**
-  Konflik utility class pada tombol Add to Cart:
-  ```tsx
-  className={`bg-amber-950 text-gray-100 px-4 py-1 rounded-xl hover:bg-amber-900 transition duration-200 cursor-pointer ${
-    isInCart
-      ? "bg-green-600 text-white hover:bg-green-700"
-      : "bg-amber-950 text-white hover:bg-amber-900"
-  }`}
-  ```
-  Kelas `bg-amber-950` berada di string dasar DAN di string kondisi, sehingga terjadi tumpang tindih CSS selector specificity di Tailwind. Selain itu, jika `isInCart` bernilai true, teks tombol tetap "Add" dan tidak memberikan feedback seperti "Added (✓)".
-- **Solution:**
-  Pisahkan class dasar dengan class dinamis:
-  ```tsx
-  <button
-    className={`px-4 py-1 rounded-xl transition duration-200 cursor-pointer text-white font-medium ${
-      isInCart
-        ? "bg-green-600 hover:bg-green-700"
-        : "bg-amber-950 hover:bg-amber-900"
-    }`}
-    onClick={handleAdd}
-  >
-    {isInCart ? "In Cart ✓" : "Add"}
-  </button>
-  ```
-- **Acceptance Criteria:**
-  - Tidak ada bentrok class warna background.
-  - Teks tombol berubah informatif saat produk sudah ada di keranjang.
-
----
-
-### [P3-02] Kontras Warna Rendah pada Hover State Button
-- **Severity:** P3 - Low
-- **Files:**
-  - `src/Components/LoginButton.tsx` (Line 7)
-  - `src/Components/LogoutButton.tsx` (Line 15)
-- **Problem:**
-  Tombol menggunakan:
-  ```tsx
-  className="bg-amber-900 text-gray-200 ... hover:bg-gray-300"
-  ```
-  Saat cursor di-hover, warna background menjadi abu-abu terang (`bg-gray-300`) sementara teks tetap abu-abu terang (`text-gray-200`). Ini menyebabkan teks tidak terbaca (contrast ratio < 2:1, melanggar standar WCAG AA).
-- **Solution:**
-  Sesuaikan warna teks saat hover atau gunakan variasi warna amber:
-  ```tsx
-  // ✅ Contoh solusi:
-  className="bg-amber-900 text-white rounded-md py-2 px-4 font-bold cursor-pointer hover:bg-amber-800 transition duration-200"
-  ```
-- **Acceptance Criteria:**
-  - Teks tetap memiliki kontras tinggi yang nyaman dibaca baik dalam keadaan normal maupun hover.
-
----
-
-### [P3-03] Full Page Fallback Kasar pada Menus & Empty State
-- **Severity:** P3 - Low
-- **File:** `src/Pages/Menus.tsx` (Line 25-26)
-- **Problem:**
-  ```tsx
-  if (isPending) return <p>Loading...</p>;
-  if (isError) return <p>Error...</p>;
-  ```
-  Jika data sedang dimuat atau error, halaman merender teks mentah di layar putih tanpa Header ataupun layout dasar aplikasi. Hal ini menyebabkan efek layout shift / flickering yang buruk bagi pengguna.
-- **Solution:**
-  Render skeleton loading atau spinner yang tetap mempertahankan layout dan Header:
-  ```tsx
-  if (isPending) {
-    return (
-      <div className="max-w-7xl mx-auto p-6 text-center py-20">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-amber-900 border-t-transparent mb-4"></div>
-        <p className="text-amber-950 font-medium">Memuat menu lezat...</p>
+  // ❌ Kode Saat Ini:
+  <div className="  flex  items-center justify-center h-[80vh] w-full">
+    <div className="max-w-3xl grid grid-cols-1 md:grid-cols-2">
+      <div className="p-5">
+        ...
+        <p className="text-4xl font-serif text-amber-950 mb-5">...</p>
+        ...
+        <div className="flex justify-start md:gap-5">
+          <button ...>Order Ahead &rarr;</button>
+          <button ...>Our Menu &rarr;</button>
+        </div>
       </div>
-    );
-  }
+      <img className="self-center " src={coffee} alt="coffee" />
+    </div>
+  </div>
+  ```
+- **Mengapa Rusak di HP:**
+  1. `h-[80vh]`: Pada HP, layar tersusun 1 kolom (teks di atas, gambar di bawah). Tinggi teks + gambar mencapai 750px+, sementara 80vh di HP hanya sekitar 500px–600px. Konten meluber keluar dari kontainer induknya.
+  2. `text-4xl`: Ukuran font 36px terlalu raksasa untuk layar HP, membuat judul patah menjadi banyak baris janggal dan mendorong semua konten ke bawah.
+  3. `md:gap-5` tanpa default gap: Kelas `md:gap-5` HANYA aktif di layar tablet ke atas (>=768px). Pada HP (<768px), tombol memiliki `gap: 0` alias **saling menempel tanpa spasi**.
+  4. Gambar `coffee.png` tidak memiliki batas lebar maksimal (`max-w-*`), sehingga ukurannya liar di layar kecil.
+- **Solusi Perbaikan:**
+  ```tsx
+  // ✅ Solusi:
+  <div className="flex items-center justify-center min-h-[calc(100vh-5rem)] py-8 px-4 w-full">
+    <div className="max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+      <div className="p-2 sm:p-5 text-center md:text-left">
+        <p className="text-amber-800 font-semibold mb-3 text-sm sm:text-base">
+          Locally-Owned Coffee Shop Serving Cleveland
+        </p>
+        <p className="text-2xl sm:text-3xl md:text-4xl font-serif text-amber-950 mb-4 leading-tight">
+          Brewing Hope & Great Coffee in the heart of Buckeye
+        </p>
+        <p className="text-amber-950 font-light mb-5 text-sm sm:text-base">
+          Once a bar, now a beacon of ambition —
+          <span className="font-bold">The Tavern Coffee House </span> is a
+          unique & eclectic café revitalizing the Buckeye-Shaker neighborhood
+          through <span className="font-bold">community, careers, </span> and
+          <span className="font-bold">coffee.</span>
+        </p>
+        <p className="text-amber-950 font-bold mb-6 text-sm sm:text-base">
+          Open 8am – 1pm Monday-Friday
+        </p>
+        <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-3 sm:gap-4">
+          <button
+            className="w-full sm:w-auto bg-gray-100 px-5 py-2.5 border-2 border-amber-950 text-amber-950 font-semibold hover:bg-amber-950 hover:text-gray-100 transition duration-200 cursor-pointer rounded-lg text-center"
+            onClick={handleOrder}
+          >
+            Order Ahead &rarr;
+          </button>
+          <button
+            className="w-full sm:w-auto bg-amber-950 px-5 py-2.5 border-2 border-amber-950 text-gray-100 font-semibold hover:bg-gray-100 hover:text-amber-950 transition duration-200 cursor-pointer rounded-lg text-center"
+            onClick={() => navigate("/menu")}
+          >
+            Our Menu &rarr;
+          </button>
+        </div>
+      </div>
+      <div className="flex justify-center p-2">
+        <img
+          className="w-full max-w-[280px] sm:max-w-sm md:max-w-full h-auto object-contain"
+          src={coffee}
+          alt="coffee"
+        />
+      </div>
+    </div>
+  </div>
   ```
 - **Acceptance Criteria:**
-  - Tampilan loading dan error tetap berada dalam frame layout aplikasi yang rapi.
+  - Hero section tidak terpotong di HP manapun dan dapat di-scroll secara alami jika layar sangat pendek.
+  - Tombol aksi memiliki jarak (gap) yang rapi dan mudah ditekan di layar sentuh (*touch target* minimal 44x44px).
+  - Gambar kopi memiliki ukuran proporsional di tengah layar.
 
 ---
 
-### [P3-04] Validasi Schema & Metadata Polish
-- **Severity:** P3 - Low
-- **Files:**
-  - `src/schemas/auth.schema.ts` (Line 11)
-  - `index.html` (Line 7)
-  - `src/Pages/NotFound.tsx`
-- **Problem:**
-  1. Pesan validasi tidak sinkron di `registerSchema`: `min(3, "Name requires at least 8 characters")`.
-  2. Title di `index.html` masih default repo: `<title>13-cobapart1</title>`.
-  3. Halaman `NotFound.tsx` hanya berupa `<div>NotFound</div>` tanpa tombol kembali ke Beranda.
-- **Solution:**
-  1. Sesuaikan validator `min(3, "Name requires at least 3 characters")`.
-  2. Ganti title di `index.html` menjadi `<title>MasDim Cafe</title>`.
-  3. Berikan styling ramah pengguna pada `NotFound.tsx` beserta link `<Link to="/">Kembali ke Beranda</Link>`.
+### [MOB-03] Baris Item Keranjang (Cart) Tergencet & Melebar ke Luar Layar
+- **Severity:** P0 - Critical
+- **Lokasi File:** `src/Pages/Cart.tsx` (Baris 31-71)
+- **Masalah:**
+  ```tsx
+  // ❌ Kode Saat Ini:
+  <div
+    key={item.id}
+    className="flex items-center gap-4 bg-white p-4 rounded-lg shadow-sm"
+  >
+    <img src={item.image_url} alt={item.name} className="w-16 h-16 object-cover rounded" />
+    <div className="flex-1">
+      <h2 className="font-semibold text-amber-950">{item.name}</h2>
+      <p className="text-amber-800 font-bold">${item.price}</p>
+    </div>
+
+    <div className="flex items-center gap-2">
+      <button ...>−</button>
+      <span className="w-8 text-center">{item.quantity}</span>
+      <button ...>+</button>
+    </div>
+
+    <button onClick={() => removeItem(item.id)} className="text-red-600 text-sm hover:underline">
+      Hapus
+    </button>
+  </div>
+  ```
+- **Mengapa Rusak di HP:**
+  Total lebar yang dibutuhkan oleh semua elemen dalam satu baris adalah:  
+  `64px (gambar) + 16px (gap) + 120px (teks) + 16px (gap) + 110px (tombol qty) + 16px (gap) + 40px (hapus) = 382px`.  
+  Namun pada layar HP 360px dengan padding container `p-6` (total padding kiri-kanan 48px), ruang yang tersedia hanya **312px**!  
+  Akibatnya: teks nama kopi tergencet parah, tombol quantity dan tombol hapus tumpang tindih atau keluar dari batas layar.
+- **Solusi Perbaikan:**
+  Ubah tata letak kartu di layar kecil menjadi responsive (informasi produk di atas, kontrol quantity & hapus di baris bawah atau menggunakan grid):
+  ```tsx
+  // ✅ Solusi:
+  <div
+    key={item.id}
+    className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100"
+  >
+    {/* Info Produk */}
+    <div className="flex items-center gap-3 flex-1 min-w-0">
+      <img
+        src={item.image_url}
+        alt={item.name}
+        className="w-16 h-16 object-cover rounded-lg shrink-0"
+      />
+      <div className="min-w-0">
+        <h2 className="font-semibold text-amber-950 text-base truncate">
+          {item.name}
+        </h2>
+        <p className="text-amber-800 font-bold text-sm sm:text-base">
+          ${item.price}
+        </p>
+      </div>
+    </div>
+
+    {/* Kontrol Kuantitas & Tombol Hapus */}
+    <div className="flex items-center justify-between sm:justify-end gap-4 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+      <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-1 border border-gray-200">
+        <button
+          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+          className="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-xs text-amber-950 font-bold active:scale-95 transition"
+          aria-label="Kurangi kuantitas"
+        >
+          −
+        </button>
+        <span className="w-8 text-center font-semibold text-sm">
+          {item.quantity}
+        </span>
+        <button
+          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+          className="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-xs text-amber-950 font-bold active:scale-95 transition"
+          aria-label="Tambah kuantitas"
+        >
+          +
+        </button>
+      </div>
+
+      <button
+        onClick={() => removeItem(item.id)}
+        className="text-red-500 hover:text-red-700 text-sm font-medium hover:underline p-1 cursor-pointer"
+      >
+        Hapus
+      </button>
+    </div>
+  </div>
+  ```
 - **Acceptance Criteria:**
-  - Pesan validasi akurat.
-  - Tab browser menampilkan nama brand yang profesional.
-  - Halaman 404 memiliki rute kembali yang jelas.
+  - Pada layar 320px–390px, setiap item keranjang tersusun rapi tanpa teks terpotong aneh dan tanpa overflow horizontal.
+  - Tombol `+` dan `−` mudah diklik dengan jari tanpa sengaja menekan tombol "Hapus".
 
 ---
 
-## 🗺️ Step-by-Step Implementation Roadmap
+### [MOB-04] Header Navbar Terlalu Tinggi (`h-30` = 120px) & Sapaan User Bocor di Layar HP
+- **Severity:** P1 - High
+- **Lokasi File:**  
+  - `src/Components/Header.tsx` (Baris 12)  
+  - `src/Components/LogoutButton.tsx` (Baris 12-22)
+- **Masalah:**
+  ```tsx
+  // ❌ Header.tsx
+  <div className="bg-white h-30 w-full shadow-md flex justify-between items-center p-5 mb-5 ">
+    <img src={logo} alt="MasDim Cafe" className="w-36 hover:cursor-pointer " ... />
+    {!isLogin ? <LoginButton /> : <LogoutButton />}
+  </div>
 
-Bagi Junior Programmer atau AI Worker, kerjakan perbaikan dengan urutan tahapan berikut:
+  // ❌ LogoutButton.tsx
+  <div className="flex gap-4 items-center">
+    <div className="text-amber-900 font-semibold">Hello {user.name} </div>
+    <button className="bg-amber-900 text-gray-200 rounded-md py-2 px-4 ...">Logout</button>
+  </div>
+  ```
+- **Mengapa Rusak di HP:**
+  1. `h-30` adalah 120px (tinggi navbar desktop yang sangat besar). Di HP dengan tinggi layar 667px, header ini memakan **18% dari seluruh layar**.
+  2. Saat user sudah login, Logo (`w-36` = 144px) + Tulisan `"Hello Muhammad Dimas"` (~160px) + Tombol Logout (~80px) + Padding kiri kanan (40px) = **424px**. Di layar HP 360px–390px, elemen ini bertumpuk berantakan atau memaksa navbar melar ke samping.
+- **Solusi Perbaikan:**
+  1. Di `Header.tsx`: Buat tinggi responsive `h-16 sm:h-20`, perkecil logo di mobile (`w-24 sm:w-32`), dan kurangi padding `px-4 sm:px-6 py-3`.
+  2. Di `LogoutButton.tsx`: Sembunyikan atau ringkas teks nama di mobile:
+  ```tsx
+  // ✅ Solusi LogoutButton.tsx:
+  <div className="flex items-center gap-2 sm:gap-3">
+    <span className="text-amber-900 font-semibold text-xs sm:text-sm max-w-[100px] sm:max-w-none truncate">
+      {user.name}
+    </span>
+    <button
+      className="bg-amber-900 text-white text-xs sm:text-sm rounded-md py-1.5 px-3 font-semibold hover:bg-amber-800 transition"
+      type="button"
+      onClick={handleLogout}
+    >
+      Logout
+    </button>
+  </div>
+  ```
+- **Acceptance Criteria:**
+  - Tinggi navbar di layar HP tidak melebihi 64px (`h-16`).
+  - Ketika user dengan nama panjang login, navbar tetap rapi dan tidak bocor ke samping.
+
+---
+
+### [MOB-05] Filter Kategori Menumpuk Berantakan & Tombol Keranjang Asimetris di Halaman Menus
+- **Severity:** P1 - High
+- **Lokasi File:** `src/Pages/Menus.tsx` (Baris 32-40, 47-58)
+- **Masalah:**
+  ```tsx
+  // ❌ Menus.tsx
+  <div className="flex justify-between items-center">
+    <h1 className="text-3xl font-bold text-amber-950 mb-6">Our Menu</h1>
+    <button className="..." onClick={() => navigate("/cart")}>
+      🛒 Cart {totalItems}
+    </button>
+  </div>
+
+  <div className="flex flex-row flex-wrap justify-center lg:flex-col gap-2">
+    {categories.map((c) => ( ... ))}
+  </div>
+  ```
+- **Mengapa Rusak di HP:**
+  1. `h1` memiliki `mb-6`, sedangkan tombol keranjang tidak. Karena dibungkus `flex items-center`, tombol keranjang tertarik ke tengah vertikal dari `h1 + margin-bottom`, sehingga posisi tombol menjadi miring/asimetris terhadap judul di HP.
+  2. Kategori filter menggunakan `flex-wrap justify-center`. Jika ada 6+ kategori, kategori tersebut membungkus menjadi 3-4 baris tombol yang memakan setengah layar HP sebelum user bisa melihat kartu menu pertama.
+- **Solusi Perbaikan:**
+  1. Hapus `mb-6` dari `h1` dan beri margin pada container header `mb-4 sm:mb-6`.
+  2. Ubah kategori di HP menjadi **Horizontal Scrollable Chip List** (standar e-commerce/aplikasi mobile modern):
+  ```tsx
+  // ✅ Solusi Menus.tsx:
+  <div className="flex justify-between items-center mb-4 sm:mb-6">
+    <h1 className="text-2xl sm:text-3xl font-bold text-amber-950">Our Menu</h1>
+    <button
+      className="bg-amber-50 hover:bg-amber-100 border border-amber-800 text-amber-900 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base font-bold cursor-pointer transition flex items-center gap-1.5 shrink-0"
+      onClick={() => navigate("/cart")}
+    >
+      <span>🛒</span> Cart ({totalItems})
+    </button>
+  </div>
+
+  {/* Category Filter: Horizontal scroll di Mobile, Sidebar di Desktop */}
+  <aside className="lg:sticky lg:top-6 lg:self-start mb-4 lg:mb-0">
+    <h2 className="hidden lg:block text-sm font-bold text-gray-500 uppercase mb-3">
+      Kategori
+    </h2>
+    <div className="flex flex-row overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 lg:flex-col gap-2 no-scrollbar">
+      {categories.map((c) => (
+        <button
+          key={c}
+          onClick={() => setSelectedCategory(c)}
+          className={`shrink-0 text-left px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full lg:rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition cursor-pointer ${
+            selectedCategory === c
+              ? "bg-amber-950 text-white"
+              : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+          }`}
+        >
+          {c}
+        </button>
+      ))}
+    </div>
+  </aside>
+  ```
+- **Acceptance Criteria:**
+  - Kategori di HP berada dalam 1 baris yang dapat digeser secara horizontal (*swipe/horizontal scroll*).
+  - Judul "Our Menu" dan tombol keranjang sejajar rapi secara vertikal.
+
+---
+
+### [MOB-06] Halaman Menu Detail: Gambar Terlalu Tinggi & Potensi Scroll Trap
+- **Severity:** P2 - Medium
+- **Lokasi File:** `src/Layouts/MenuDetail.tsx` (Baris 54-57, Baris 102)
+- **Masalah:**
+  ```tsx
+  // ❌ MenuDetail.tsx
+  <img src={menuItem.image_url} className="w-full h-80 object-cover" />
+  ...
+  <div className="space-y-3 max-h-125 overflow-y-auto">
+  ```
+- **Mengapa Rusak di HP:**
+  1. `h-80` (320px): Gambar menghabiskan hampir 60% layar pertama smartphone sebelum pengguna melihat nama menu, rating, deskripsi, atau tombol tambah ke keranjang.
+  2. `max-h-125 overflow-y-auto`: Kotak ulasan memiliki scroll tersendiri di dalam halaman. Pada layar sentuh handphone, ini memicu *scroll trap* (saat jari user menyentuh bagian ulasan untuk scroll ke bawah halaman, justru scroll ulasan yang bergerak, membuat user kesulitan keluar dari halaman).
+- **Solusi Perbaikan:**
+  - Gunakan `h-60 sm:h-80` agar gambar tidak mendominasi layar.
+  - Pada layar mobile, biarkan ulasan mengalir secara alami tanpa *scroll trap*:
+  ```tsx
+  // ✅ Solusi:
+  <img
+    src={menuItem.image_url}
+    alt={menuItem.name}
+    className="w-full h-56 sm:h-80 object-cover"
+  />
+  ...
+  {/* Review list */}
+  <div className="space-y-3 max-h-96 sm:max-h-125 overflow-y-auto pr-1">
+  ```
+- **Acceptance Criteria:**
+  - Pengguna HP dapat langsung melihat nama makanan dan harga tanpa harus scroll jauh melewati gambar.
+
+---
+
+### [MOB-07] Modal Menu Detail Menggunakan `min-w-md` (448px)
+- **Severity:** P2 - Medium
+- **Lokasi File:** `src/Layouts/MenuDetail(dengan zustand).tsx` (Baris 19)
+- **Masalah:**
+  ```tsx
+  // ❌ Kode:
+  <div className="relative min-w-md bg-gray-100 max-h-screen rounded-2xl grid-rows-1 sm:grid-cols-2">
+  ```
+- **Mengapa Rusak di HP:**
+  Sama seperti halaman login, `min-w-md` memaksa modal melebar hingga 448px, melebihi lebar layar HP dan membuat tombol tutup (`x`) keluar dari layar.
+- **Solusi Perbaikan:**
+  Ubah menjadi responsive:
+  ```tsx
+  // ✅ Solusi:
+  <div className="relative w-[92vw] max-w-md bg-gray-100 max-h-[90vh] overflow-y-auto rounded-2xl p-4">
+  ```
+- **Acceptance Criteria:**
+  - Modal muat di layar HP dengan margin aman di sisi kiri dan kanan.
+
+---
+
+## 📐 4. Aturan Mobile-First CSS untuk Junior Programmer & AI
+
+Saat menulis kode Tailwind CSS di proyek ini, patuhi panduan fundamental berikut:
+
+1. **Selalu Terapkan Filosofi Mobile-First:**
+   - Di Tailwind, kelas tanpa prefix (seperti `p-4`, `text-lg`, `grid-cols-1`) adalah nilai **default untuk layar HP terendah**.
+   - Prefix seperti `sm:`, `md:`, `lg:` hanya digunakan untuk menambahkan penyesuaian pada layar yang lebih besar.
+   - ❌ **SALAH:** Menulis `md:gap-5` tanpa menulis `gap-3` (mengakibatkan di HP gap bernilai 0).
+   - ✅ **BENAR:** `gap-3 md:gap-5` (di HP gap 12px, di desktop gap 20px).
+2. **Hindari `min-w-*` yang Lebih Besar dari 300px:**
+   - Jangan pernah menggunakan `min-w-md` (448px), `min-w-lg` (512px) pada container utama.
+   - Gunakan selalu kombinasi `w-full max-w-*` untuk layout yang fleksibel.
+3. **Hindari Fixed Height `h-[...vh]` pada Konten Dinamis:**
+   - Konten teks dan gambar pada layar HP akan melipat secara vertikal. Mengunci tinggi dengan `h-[80vh]` selalu berujung pada konten terpotong.
+   - Gunakan `min-h-[...]` atau padding vertikal alami `py-8` / `py-12`.
+4. **Sentuhan Jari (Touch Targets):**
+   - Pastikan setiap tombol dan link interaktif di mobile memiliki ukuran area sentuh minimal **44x44px** agar tidak salah pencet.
+
+---
+
+## 🗺️ 5. Implementation Roadmap (Urutan Eksekusi)
 
 ```
-[Fase 1: P0 Blockers & Env]
-  1. Perbaiki spasi pada `.env` (P0-03)
-  2. Hapus unused import `createJSONStorage` di `authStore.ts` (P0-01)
-  3. Ubah ternary menjadi if-else di `Layouts/Main.tsx` (P0-02)
-  4. Jalankan `npm run build` & `npm run lint` untuk verifikasi build hijau.
+[Fase 1: Perbaikan Kritis P0 - Overflow & Layout Pecah]
+  1. Buka `src/Pages/Login.tsx`, ganti `min-w-md` dengan `w-full max-w-md px-4` [MOB-01]
+  2. Buka `src/Layouts/Main.tsx`, perbaiki `h-[80vh]`, tombol gap, dan ukuran font [MOB-02]
+  3. Buka `src/Pages/Cart.tsx`, ubah layout item keranjang menjadi responsive multi-baris [MOB-03]
 
-[Fase 2: P1 Functional & Network Fixes]
-  5. Tambahkan `onError` dan pesan feedback di `Login.tsx` (P1-01)
-  6. Perbaiki parsing error fallback di `authApi.ts` (P1-03)
-  7. Rapikan deklarasi `handleAdd` di `MenuDetail.tsx` (P1-04)
-  8. Handle rute Checkout di `Cart.tsx` / `router.tsx` (P1-02)
+[Fase 2: Perbaikan P1 - Header & Navigasi Mobile]
+  4. Buka `src/Components/Header.tsx` & `LogoutButton.tsx`, kurangi tinggi dan rapikan sapaan user [MOB-04]
+  5. Buka `src/Pages/Menus.tsx`, ubah filter kategori menjadi horizontal scroll [MOB-05]
 
-[Fase 3: P2 Refactoring & Code Hygiene]
-  9. Bersihkan dead files (`App.tsx`, file `(dengan zustand)`) (P2-01)
-  10. Pindahkan Main -> Hero, MenuDetail -> Pages (P2-01)
-  11. Implementasikan `RootLayout` terpusat untuk Header (P2-02)
-  12. Perbaiki selector Zustand di `Cart.tsx` & `Menus.tsx` (P2-03)
-  13. Rapikan interface duplikat `Menu` & `MenuItem` (P2-04)
-  14. Hapus `console.log` sisa (P2-05)
-
-[Fase 4: P3 UI/UX & Quality-of-Life]
-  15. Benahi Tailwind class conflict di `CardMenus.tsx` (P3-01)
-  16. Perbaiki kontras hover tombol Login/Logout (P3-02)
-  17. Perbagus Loading/Error state di `Menus.tsx` (P3-03)
-  18. Update title `index.html` & styling `NotFound.tsx` (P3-04)
+[Fase 3: Polishing P2 - Detail Menu & Modal]
+  6. Buka `src/Layouts/MenuDetail.tsx`, optimalkan tinggi gambar [MOB-06]
+  7. Buka `src/Layouts/MenuDetail(dengan zustand).tsx`, ubah `min-w-md` menjadi `w-[92vw] max-w-md` [MOB-07]
 ```
 
 ---
 
-## 🧪 Verification & Acceptance Checklist
+## 🧪 6. Checklist Verifikasi & Testing di Handphone
 
-Sebelum menandai seluruh issue ini selesai (`Resolved`), jalankan verifikasi berikut:
+Untuk memverifikasi bahwa seluruh issue telah selesai dengan benar:
 
-- [ ] **Typecheck & Build:**  
+- [ ] Buka Google Chrome / Edge Developer Tools (`F12`).
+- [ ] Aktifkan **Device Toolbar** (`Ctrl + Shift + M`).
+- [ ] Pilih preset **iPhone SE (375 × 667)** dan **Samsung Galaxy S8+ (360 × 740)**.
+- [ ] **Test Halaman Home (`/`):** Pastikan tidak ada konten yang terpotong dan tombol "Order Ahead" memiliki jarak pemisah.
+- [ ] **Test Halaman Login (`/login`):** Pastikan form login berada pas di tengah layar dan TIDAK ada scrollbar horizontal ke kanan-kiri.
+- [ ] **Test Halaman Menu (`/menu`):** Pastikan filter kategori dapat di-swipe ke samping dalam 1 baris tanpa menutupi layar.
+- [ ] **Test Halaman Keranjang (`/cart`):** Masukkan beberapa menu, buka keranjang. Pastikan nama menu, tombol tambah/kurang, dan tombol hapus tersusun rapi.
+- [ ] Jalankan build check:
   ```bash
   npm run build
-  ```  
-  *Harus exit dengan code 0 tanpa error.*
-- [ ] **Linter:**  
-  ```bash
   npm run lint
-  ```  
-  *Harus 0 errors dan 0 warnings.*
-- [ ] **Login Flow:** Coba login dengan kredensial salah, verifikasi pesan error muncul di UI. Coba kredensial benar, verifikasi user diarahkan ke `/` dan token tersimpan.
-- [ ] **Menu & Cart Flow:** Buka menu, filter kategori, klik item untuk melihat detail, tambahkan ke keranjang, dan ubah quantity di halaman Cart.
-- [ ] **Routing:** Cek halaman 404, pastikan ada tombol kembali ke Beranda.
+  ```

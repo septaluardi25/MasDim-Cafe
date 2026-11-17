@@ -9,11 +9,11 @@ const Header = () => {
   const isLogin = useAuthStore((state) => state.isLogin);
 
   return (
-    <div className="bg-white h-30 w-full shadow-md flex justify-between items-center p-5 mb-5 ">
+    <div className="bg-white h-16 sm:h-20 w-full shadow-md flex justify-between items-center p-5 mb-5 ">
       <img
         src={logo}
         alt="MasDim Cafe"
-        className="w-36 hover:cursor-pointer "
+        className="w-24 sm:w-36 hover:cursor-pointer "
         onClick={() => navigate("/")}
       />
 

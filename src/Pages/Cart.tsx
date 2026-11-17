@@ -31,12 +31,12 @@ export default function Cart() {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center gap-4 bg-white p-4 rounded-lg shadow-sm"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl"
                 >
                   <img
                     src={item.image_url}
                     alt={item.name}
-                    className="w-16 h-16 object-cover rounded"
+                    className="sm:w-16 sm:h-16 object-cover rounded "
                   />
                   <div className="flex-1">
                     <h2 className="font-semibold text-amber-950">
@@ -45,7 +45,7 @@ export default function Cart() {
                     <p className="text-amber-800 font-bold">${item.price}</p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between sm:justify-end gap-4 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity - 1)}
                       className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300"

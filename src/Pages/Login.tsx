@@ -29,18 +29,19 @@ const Login = () => {
       navigate("/");
     },
   });
+
   const onSubmit = (data: LoginRequest) => {
     setError("");
     loginMutation.mutate(data);
   };
   return (
-    <div className="bg-gray-800 min-h-screen w-full flex justify-center items-center">
-      <div className=" max-w-xl min-w-md min-h-80 ">
+    <div className=" min-h-screen w-full flex justify-center items-center">
+      <div className=" max-w-md  min-h-80 border- rounded-2xl border-amber-950 shadow-2xl">
         <form
           className="flex justify-between flex-col  p-5 gap-2"
           onSubmit={handleSubmit(onSubmit)}
         >
-          <h1 className="items-center text-center font-bold text-4xl text-gray-200">
+          <h1 className="items-center text-center font-bold text-4xl text-amber-950">
             Login
           </h1>
           {error && (
@@ -49,7 +50,7 @@ const Login = () => {
             </p>
           )}
           <label
-            className="text-md font-semibold text-gray-200"
+            className="text-md font-semibold text-amber-950"
             htmlFor="email"
           >
             Email :
@@ -58,7 +59,7 @@ const Login = () => {
             {...register("email")}
             type="email"
             id="email"
-            className="bg-gray-700 text-gray-200 font-semibold px-4 py-2 rounded-md focus:outline-none focus:ring focus:ring-amber-500"
+            className="bg-gray-700 text-gray-200 font-semibold px-4 py-2 rounded-md focus:outline-none focus:ring focus:ring-amber-950"
           />
           <div className="h-6">
             {errors.email && (
@@ -66,7 +67,7 @@ const Login = () => {
             )}
           </div>
           <label
-            className="text-md font-semibold text-gray-200"
+            className="text-md font-semibold text-amber-950"
             htmlFor="password"
           >
             Password :
@@ -75,7 +76,7 @@ const Login = () => {
             {...register("password")}
             id="password"
             type="password"
-            className="bg-gray-700 text-gray-200 font-semibold px-6 py-2 rounded-md focus:outline-none focus:ring focus:ring-amber-500"
+            className="bg-gray-700 text-gray-200 font-semibold px-6 py-2 rounded-md focus:outline-none focus:ring focus:ring-amber-950"
           />
           <div className="h-6 mb-5">
             {errors.password && (
@@ -84,7 +85,7 @@ const Login = () => {
           </div>
           <button
             type="submit"
-            className=" bg-amber-100 py-2 px-4 rounded-md font-semibold text-gray-800 cursor-pointer focus:outline-none hover:bg-amber-200 transition duration-200 border-none"
+            className=" bg-amber-950 border-2 border-amber-950 py-2 px-4 rounded-md font-semibold hover:text-amber-950 text-gray-100 cursor-pointer focus:outline-none hover:border-amber-950 hover:bg-gray-100  transition duration-200 "
             disabled={loginMutation.isPending}
           >
             {loginMutation.isPending ? "Loading.." : "Login"}

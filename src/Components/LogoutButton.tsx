@@ -10,7 +10,9 @@ const LogoutButton = () => {
   if (!user) return null;
   return (
     <div className="flex  gap-4 items-center">
-      <div className="text-amber-900 font-semibold">Hello {user.name} </div>
+      <div className="text-amber-900 font-semibold  text-xs sm:text-sm max-w-25]">
+        Hello {user.name}{" "}
+      </div>
       <button
         className="bg-amber-900 text-gray-200 rounded-md py-2 px-4 font-bold cursor-pointer hover:bg-gray-300 transition duration-200"
         type="button"

@@ -10,7 +10,7 @@ const Main = () => {
   };
 
   return (
-    <div className="  flex  items-center justify-center h-[80vh] w-full">
+    <div className="  flex  items-center justify-center   min-h-[calc(100vh-5rem)] py-8 px-4 w-full">
       <div className="max-w-3xl grid grid-cols-1 md:grid-cols-2">
         <div className="p-5">
           <p className="text-amber-800 font-semibold mb-5">
