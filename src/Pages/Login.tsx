@@ -59,7 +59,7 @@ const Login = () => {
             {...register("email")}
             type="email"
             id="email"
-            className="bg-gray-700 text-gray-200 font-semibold px-4 py-2 rounded-md focus:outline-none focus:ring focus:ring-amber-950"
+            className="bg-gray-100 text-amber-950 font-semibold px-4 py-2 rounded-md focus:outline-none focus:ring focus:ring-amber-950"
           />
           <div className="h-6">
             {errors.email && (
@@ -76,7 +76,7 @@ const Login = () => {
             {...register("password")}
             id="password"
             type="password"
-            className="bg-gray-700 text-gray-200 font-semibold px-6 py-2 rounded-md focus:outline-none focus:ring focus:ring-amber-950"
+            className="bg-gray-100 text-amber-950 font-semibold px-6 py-2 rounded-md focus:outline-none focus:ring focus:ring-amber-950"
           />
           <div className="h-6 mb-5">
             {errors.password && (
