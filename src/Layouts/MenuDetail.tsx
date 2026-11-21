@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getMenuDetail } from "../api/menuApi";
 import { Link, useParams } from "react-router";
 import { useCartStore } from "../stores/cartStore";
+import CartButton from "../Components/CartButton";
 
 const MenuDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,13 +41,16 @@ const MenuDetail = () => {
   return (
     <div className="bg-gray-50 min-h-screen py-8 px-4">
       <div className="max-w-5xl mx-auto">
-        {/* back button */}
-        <Link
-          to="/menu"
-          className="inline-block mb-6 text-amber-800 hover:underline "
-        >
-          Back to menu
-        </Link>
+        {/* back button  dan cart button*/}
+        <div className="flex justify-between items-cente mb-5">
+          <Link
+            to="/menu"
+            className="inline-block mb-6 text-amber-800 hover:underline "
+          >
+            Back to menu
+          </Link>
+          <CartButton />
+        </div>
 
         {/* grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -91,6 +95,7 @@ const MenuDetail = () => {
               </div>
             </div>
           </div>
+
           {/* reviews */}
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <h2 className="text-xl font-bold text-amber-950 mb-4">

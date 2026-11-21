@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router";
 import coffee from "../assets/coffee.png";
+import bean from "../assets/bean.jpg";
 import { useAuthStore } from "../stores/authStore";
 
 const Main = () => {
@@ -10,8 +11,12 @@ const Main = () => {
   };
 
   return (
-    <div className="  flex  items-center justify-center   min-h-[calc(100vh-5rem)] py-8 px-4 w-full">
-      <div className="max-w-3xl grid grid-cols-1 md:grid-cols-2">
+    <div
+      className="relative flex  items-center justify-center min-h-[calc(100vh-5rem)] py-8 px-4 w-full bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: `url(${bean})` }}
+    >
+      <div className="absolute inset-0 bg-white/40" />
+      <div className="max-w-6xl grid grid-cols-1 md:grid-cols-2 relative z-10 gap-5">
         <div className="p-5">
           <p className="text-amber-800 font-semibold mb-5">
             Locally-Owned Coffee Shop Serving Cleveland
@@ -45,7 +50,7 @@ const Main = () => {
           </div>
         </div>
         <img
-          className="self-center "
+          className="self-center justify-self-center w-90 md:w-full"
           src={coffee}
           alt="coffee"
         />

@@ -3,7 +3,7 @@ import type { MenuDetailResponse } from "../types/MenuDetail";
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 export const getMenus = async (): Promise<Menu[]> => {
-  const response = await fetch(`${BASE_URL}/menu`);
+  const response = await fetch(`${BASE_URL}/menu?page=1&pageSize=50`);
 
   if (!response.ok) throw new Error("Gagal mengambil data Menu");
 

@@ -13,7 +13,7 @@ const Header = () => {
       <img
         src={logo}
         alt="MasDim Cafe"
-        className="w-24 sm:w-36 hover:cursor-pointer "
+        className="w-24 sm:w-28 hover:cursor-pointer "
         onClick={() => navigate("/")}
       />
 
