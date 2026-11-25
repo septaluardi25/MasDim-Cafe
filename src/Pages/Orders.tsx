@@ -1,17 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
-import { getOrder } from "../api/OrdersApi";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { deleteOrder, getOrder, putOrder } from "../api/OrdersApi";
 import Header from "../Components/Header";
 import CardOrder from "../Components/CardOrder";
 import { getMenus } from "../api/menuApi";
 import { useState } from "react";
+import { toast } from "react-toastify";
+import queryClient from "../lib/queryClient";
 
 const Orders = () => {
   const [sortOrders, setSortOrders] = useState<"asc" | "desc">("asc");
-  // getmenus
+
+  // get menus
   const { data: menus = [] } = useQuery({
     queryKey: [`menus`],
     queryFn: getMenus,
   });
+
+  //post menus
   const {
     data = [],
     isError,
@@ -20,6 +25,29 @@ const Orders = () => {
   } = useQuery({
     queryKey: [`orders`],
     queryFn: getOrder,
+  });
+
+  // put menus
+  const putMutation = useMutation({
+    mutationFn: putOrder,
+    onSuccess: () => {
+      toast.success("Pesanan telah diselesaikan");
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
+  //delete menus
+  const deleteMutation = useMutation({
+    mutationFn: deleteOrder,
+    onSuccess: () => {
+      toast.success("Berhasil menghapus pesanan");
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
   });
 
   const sortedOrders = [...data].sort((a, b) => {
@@ -54,7 +82,14 @@ const Orders = () => {
               key={item.id}
               item={item}
               menus={menus}
-              isPending={isPending}
+              isUpdating={
+                putMutation.isPending && putMutation.variables?.id === item.id
+              }
+              isDeleting={
+                deleteMutation.isPending && deleteMutation.variables === item.id
+              }
+              onUpdate={(id) => putMutation.mutate({ id, status: "COMPLETED" })}
+              onDelete={(id) => deleteMutation.mutate(id)}
             />
           ))}
         </div>

@@ -7,7 +7,7 @@ const Main = () => {
   const isLogin = useAuthStore((state) => state.isLogin);
   const navigate = useNavigate();
   const handleOrder = () => {
-    !isLogin ? navigate("/login") : navigate("/menu");
+    !isLogin ? navigate("/login") : navigate("/orders");
   };
 
   return (

@@ -30,3 +30,37 @@ export const postOrder = async (data: OrderPayload) => {
   if (!response.ok) throw new Error("order gagal");
   return await response.json();
 };
+
+export const putOrder = async ({
+  id,
+  status,
+}: {
+  id: string;
+  status: string;
+}) => {
+  const token = useAuthStore.getState().token;
+  const response = await fetch(`${BASE_URL}/orders/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: JSON.stringify({ status }),
+  });
+  if (!response.ok) throw new Error("Gagal menyelesaikan pesanan");
+  console.log(response);
+  return await response.json();
+};
+
+export const deleteOrder = async (id: string) => {
+  const token = useAuthStore.getState().token;
+  const response = await fetch(`${BASE_URL}/orders/${id}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!response.ok) throw new Error("Gagal menghapus order");
+  return await response.json();
+};
