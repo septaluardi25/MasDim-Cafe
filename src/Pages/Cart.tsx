@@ -4,11 +4,12 @@ import { useCartStore } from "../stores/cartStore";
 import React, { useState } from "react";
 import type { OrderPayload } from "../types/Orders";
 import { useMutation } from "@tanstack/react-query";
-import { postOrder } from "../api/OrdersApi";
+import { postOrder } from "../api/ordersApi";
 import { toast } from "react-toastify";
 
 export default function Cart() {
   const navigate = useNavigate();
+
   const items = useCartStore((s) => s.items);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
@@ -22,12 +23,14 @@ export default function Cart() {
     mutationFn: (payload: OrderPayload) => postOrder(payload),
     onSuccess: () => {
       toast.success("pesanan berhasil dikirim");
+
       clearCart();
       setCustomerName("");
       setTableNumber("");
       setNotes({});
       navigate("/menu");
     },
+
     onError: (err: Error) => {
       toast.error(err.message || "gagal membuat pesanan");
     },
@@ -50,7 +53,6 @@ export default function Cart() {
       })),
     };
     orderMutation.mutate(payload);
-    console.log(payload);
   };
 
   return (

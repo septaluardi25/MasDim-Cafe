@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { getMenuDetail } from "../api/menuApi";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { useCartStore } from "../stores/cartStore";
 import CartButton from "../Components/CartButton";
 
 const MenuDetail = () => {
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const addItem = useCartStore((state) => state.addItem);
 
@@ -42,7 +43,7 @@ const MenuDetail = () => {
     <div className="bg-gray-50 min-h-screen py-8 px-4">
       <div className="max-w-5xl mx-auto">
         {/* back button  dan cart button*/}
-        <div className="flex justify-between items-cente mb-5">
+        <div className="flex justify-between items-center mb-5">
           <Link
             to="/menu"
             className="inline-block mb-6 text-amber-800 hover:underline "
@@ -86,12 +87,25 @@ const MenuDetail = () => {
                     ${menuItem.price}
                   </p>
                 </div>
-                <button
-                  className="bg-amber-950 text-white px-6 py-2 rounded-lg hover:bg-amber-900 transition"
-                  onClick={handleAdd}
-                >
-                  Add to Cart
-                </button>
+                <div className="flex gap-5">
+                  <button
+                    className={`border-2 border-amber-950 text-amber-950 font-semibold hover:text-gray-100 px-4 py-1 rounded-xl hover:bg-amber-950 transition duration-200 cursor-pointer`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/reviews/${menuItem.id}`, {
+                        state: { menuName: menuItem.name },
+                      });
+                    }}
+                  >
+                    Review
+                  </button>
+                  <button
+                    className="bg-amber-950 text-white px-6 py-2 rounded-lg hover:bg-amber-900 transition"
+                    onClick={handleAdd}
+                  >
+                    Add to Cart
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -38,12 +38,26 @@ const CardMenus = ({ menu }: Props) => {
           <span className="text-md font-semibold text-amber-800">
             ${menu.price}
           </span>
-          <button
-            className={`bg-amber-950 text-gray-100 px-4 py-1 rounded-xl hover:bg-amber-900 transition duration-200 cursor-pointer ${isInCart ? "bg-green-600 text-white hover:bg-green-700" : "bg-amber-950 text-white hover:bg-amber-900"}`}
-            onClick={handleAdd}
-          >
-            Add
-          </button>
+
+          <div className="flex gap-2">
+            <button
+              className={`border-2 border-amber-950 text-amber-950 font-semibold hover:text-gray-100 px-4 py-1 rounded-xl hover:bg-amber-950 transition duration-200 cursor-pointer`}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/reviews/${menu.id}`, {
+                  state: { menuName: menu.name },
+                });
+              }}
+            >
+              Review
+            </button>
+            <button
+              className={`bg-amber-950 text-gray-100 px-4 py-1 rounded-xl hover:bg-amber-900 transition duration-200 cursor-pointer ${isInCart ? "bg-green-600 text-white hover:bg-green-700" : "bg-amber-950 text-white hover:bg-amber-900"}`}
+              onClick={handleAdd}
+            >
+              Add
+            </button>
+          </div>
         </div>
       </div>
     </div>

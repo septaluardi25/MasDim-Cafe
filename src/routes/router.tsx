@@ -8,6 +8,7 @@ import MenuDetail from "../Layouts/MenuDetail";
 import Cart from "../Pages/Cart";
 import ProtectedRoute from "../Components/ProtectedRoute";
 import Orders from "../Pages/Orders";
+import Reviews from "../Pages/Reviews";
 
 const router = createBrowserRouter([
   {
@@ -30,6 +31,7 @@ const router = createBrowserRouter([
     children: [
       { path: "/cart", element: <Cart /> },
       { path: "/orders", element: <Orders /> },
+      { path: "/reviews/:id", element: <Reviews /> },
     ],
   },
   {
