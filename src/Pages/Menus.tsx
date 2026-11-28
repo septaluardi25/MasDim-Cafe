@@ -2,7 +2,7 @@ import CardMenus from "../Components/CardMenus";
 import Header from "../Components/Header";
 import { useQuery } from "@tanstack/react-query";
 import { getMenus } from "../api/menuApi";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CartButton from "../Components/CartButton";
 import MenuGridSkeleton from "../Components/SkeletonLoadingMenus";
 
@@ -45,6 +45,12 @@ const Menus = () => {
   const startIndex = (page - 1) * itemPage;
   const endIndex = page * itemPage;
   const currentMenus = filteredMenus.slice(startIndex, endIndex);
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }, [page]);
 
   if (isError) return <p>Error...</p>;
 
